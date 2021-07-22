@@ -2,6 +2,8 @@ use std::mem;
 use std::convert::TryInto;
 
 pub trait Buffer{
+    const STATIC_SIZE: bool;
+    
     fn into_buffer(&self, buffer: &mut [u8]);
 
     fn as_buffer(&self) -> Box<[u8]>;
@@ -11,7 +13,33 @@ pub trait Buffer{
     fn from_buffer(buffer: &[u8]) -> Self;
 }
 
+macro_rules! impl_buffer {
+    ($type:ty) => {
+        impl Buffer for $type{
+            const STATIC_SIZE: bool = true;
+
+            fn into_buffer(&self, buffer: &mut [u8]){
+                buffer.clone_from_slice(&self.to_le_bytes());
+            }
+
+            fn as_buffer(&self) -> Box<[u8]>{
+                Box::new(self.to_le_bytes())
+            }
+
+            fn buffer_len(&self) -> usize{
+                mem::size_of::<Self>()
+            }
+
+            fn from_buffer(buffer: &[u8]) -> Self {
+                Self::from_le_bytes(buffer.try_into().unwrap())
+            }
+        }
+    };
+}
+
 impl Buffer for bool{
+    const STATIC_SIZE: bool = true;
+
     fn into_buffer(&self, buffer: &mut [u8]){
         buffer[0] = *self as u8;
     }
@@ -20,17 +48,18 @@ impl Buffer for bool{
         Box::new([*self as u8])
     }
 
-    fn buffer_len(&self) -> usize {
+    fn buffer_len(&self) -> usize{
         mem::size_of::<Self>()
     }
 
     fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0]];
-        temp[0] != 0
+        buffer[0] != 0
     }
 }
 
 impl Buffer for u8{
+    const STATIC_SIZE: bool = true;
+
     fn into_buffer(&self, buffer: &mut [u8]){
         buffer[0] = *self;
     }
@@ -39,194 +68,29 @@ impl Buffer for u8{
         Box::new([*self])
     }
 
-    fn buffer_len(&self) -> usize {
+    fn buffer_len(&self) -> usize{
         mem::size_of::<Self>()
     }
 
     fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0]];
-        temp[0]
+        buffer[0]
     }
 }
 
-impl Buffer for u16{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
+impl_buffer!(u16);
+impl_buffer!(u32);
+impl_buffer!(u64);
+impl_buffer!(u128);
 
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for u32{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1], buffer[2], buffer[3]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for u64{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for u128{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [
-            buffer[0], buffer[1], buffer[2],  buffer[3],  buffer[4],  buffer[5],  buffer[6],  buffer[7],
-            buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15]
-        ];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for i8{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for i16{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for i32{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1], buffer[2], buffer[3]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for i64{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
-
-impl Buffer for i128{
-    fn into_buffer(&self, buffer: &mut [u8]){
-        buffer.clone_from_slice(&self.to_le_bytes());
-    }
-
-    fn as_buffer(&self) -> Box<[u8]>{
-        Box::new(self.to_le_bytes())
-    }
-
-    fn buffer_len(&self) -> usize {
-        mem::size_of::<Self>()
-    }
-
-    fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = [
-            buffer[0], buffer[1], buffer[2],  buffer[3],  buffer[4],  buffer[5],  buffer[6],  buffer[7],
-            buffer[8], buffer[9], buffer[10], buffer[11], buffer[12], buffer[13], buffer[14], buffer[15]
-        ];
-        Self::from_le_bytes(temp.try_into().unwrap())
-    }
-}
+impl_buffer!(i8);
+impl_buffer!(i16);
+impl_buffer!(i32);
+impl_buffer!(i64);
+impl_buffer!(i128);
 
 impl Buffer for char{
+    const STATIC_SIZE: bool = true;
+
     fn into_buffer(&self, buffer: &mut [u8]){
         let temp = *self as u32;
         buffer.clone_from_slice(&temp.to_le_bytes());
@@ -237,12 +101,12 @@ impl Buffer for char{
         Box::new(temp.to_le_bytes())
     }
 
-    fn buffer_len(&self) -> usize {
+    fn buffer_len(&self) -> usize{
         mem::size_of::<Self>()
     }
 
     fn from_buffer(buffer: &[u8]) -> Self {
-        let temp = u32::from_le_bytes([buffer[0], buffer[1], buffer[2], buffer[3]]);
+        let temp = u32::from_le_bytes(buffer.try_into().unwrap());
         std::char::from_u32(temp).unwrap()
     }
 }
@@ -250,6 +114,17 @@ impl Buffer for char{
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    macro_rules! number_test {
+        ($type:ty) => {
+            let test = <$type>::MIN;
+            println!("test min: {}", test);
+            assert_eq!(test, <$type>::from_buffer(&test.as_buffer()));
+            let test = <$type>::MAX;
+            println!("test max: {}", test);
+            assert_eq!(test, <$type>::from_buffer(&test.as_buffer()));
+        }
+    }
 
     #[test]
     fn bool_buff() {
@@ -260,84 +135,34 @@ mod tests {
     }
 
     #[test]
-    fn u8_buff() {
-        let test = u8::MIN;
-        assert_eq!(test, u8::from_buffer(&test.as_buffer()));
-        let test = u8::MAX;
-        assert_eq!(test, u8::from_buffer(&test.as_buffer()));
-    }
+    fn u8_buff() {number_test!(u8);}
 
     #[test]
-    fn u16_buff() {
-        let test = u16::MIN;
-        assert_eq!(test, u16::from_buffer(&test.as_buffer()));
-        let test = u16::MAX;
-        assert_eq!(test, u16::from_buffer(&test.as_buffer()));
-    }
+    fn u16_buff() {number_test!(u16);}
 
     #[test]
-    fn u32_buff() {
-        let test = u32::MIN;
-        assert_eq!(test, u32::from_buffer(&test.as_buffer()));
-        let test = u32::MAX;
-        assert_eq!(test, u32::from_buffer(&test.as_buffer()));
-    }
+    fn u32_buff() {number_test!(u32);}
 
     #[test]
-    fn u64_buff() {
-        let test = u64::MIN;
-        assert_eq!(test, u64::from_buffer(&test.as_buffer()));
-        let test = u64::MAX;
-        assert_eq!(test, u64::from_buffer(&test.as_buffer()));
-    }
+    fn u64_buff() {number_test!(u64);}
 
     #[test]
-    fn u128_buff() {
-        let test = u128::MIN;
-        assert_eq!(test, u128::from_buffer(&test.as_buffer()));
-        let test = u128::MAX;
-        assert_eq!(test, u128::from_buffer(&test.as_buffer()));
-    }
+    fn u128_buff() {number_test!(u128);}
 
     #[test]
-    fn i8_buff() {
-        let test = i8::MIN;
-        assert_eq!(test, i8::from_buffer(&test.as_buffer()));
-        let test = i8::MAX;
-        assert_eq!(test, i8::from_buffer(&test.as_buffer()));
-    }
+    fn i8_buff() {number_test!(i8);}
 
     #[test]
-    fn i16_buff() {
-        let test = i16::MIN;
-        assert_eq!(test, i16::from_buffer(&test.as_buffer()));
-        let test = i16::MAX;
-        assert_eq!(test, i16::from_buffer(&test.as_buffer()));
-    }
+    fn i16_buff() {number_test!(i16);}
 
     #[test]
-    fn i32_buff() {
-        let test = i32::MIN;
-        assert_eq!(test, i32::from_buffer(&test.as_buffer()));
-        let test = i32::MAX;
-        assert_eq!(test, i32::from_buffer(&test.as_buffer()));
-    }
+    fn i32_buff() {number_test!(i32);}
 
     #[test]
-    fn i64_buff() {
-        let test = i64::MIN;
-        assert_eq!(test, i64::from_buffer(&test.as_buffer()));
-        let test = i64::MAX;
-        assert_eq!(test, i64::from_buffer(&test.as_buffer()));
-    }
+    fn i64_buff() {number_test!(i64);}
 
     #[test]
-    fn i128_buff() {
-        let test = i128::MIN;
-        assert_eq!(test, i128::from_buffer(&test.as_buffer()));
-        let test = i128::MAX;
-        assert_eq!(test, i128::from_buffer(&test.as_buffer()));
-    }
+    fn i128_buff() {number_test!(i128);}
 
     #[test]
     fn char_buff() {
