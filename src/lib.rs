@@ -1,5 +1,6 @@
 use std::mem::size_of;
 use std::convert::TryInto;
+use std::io::Write;
 
 pub trait Bytes{
     const STATIC_SIZE: bool;
@@ -40,31 +41,19 @@ impl Iterator for ByteBuffer {
     }
 }
 
-macro_rules! impl_buffer {
-    ($type:ty) => {
-        impl Bytes for $type{
-            const STATIC_SIZE: bool = true;
+pub trait WriteBytes: Write {
+    fn write_bytes<T: Iterator<Item = u8>>(&mut self, byte_iter: &mut T, buffer_size: usize) -> Result<(), std::io::Error>{
+        let mut buffer: Vec<u8>;
 
-            fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
-                ByteBuffer::new(self.to_le_bytes().to_vec())
-            }
-        
-            fn bytes_len(&self) -> usize{
-                size_of::<Self>()
-            }
-        
-            fn from_bytes<T: Iterator<Item = u8>>(bytes: &mut T) -> Result<Self, ()> {
-                let buffer = bytes.take(size_of::<Self>()).collect::<Vec<u8>>();
-        
-                if buffer.len() != size_of::<Self>() {
-                    // not enough bytes
-                    return Err(())
-                }
-        
-                Ok(<$type>::from_le_bytes(buffer.try_into().unwrap()))
-            }
+        loop {
+            buffer = byte_iter.take(buffer_size).collect();
+            if buffer.is_empty() {break}
+
+            self.write_all(&buffer[..])?;
         }
-    };
+
+        Ok(())
+    }
 }
 
 impl Bytes for bool{
@@ -139,6 +128,33 @@ impl Bytes for u8{
             Err(())
         }
     }
+}
+
+macro_rules! impl_buffer {
+    ($type:ty) => {
+        impl Bytes for $type{
+            const STATIC_SIZE: bool = true;
+
+            fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
+                ByteBuffer::new(self.to_le_bytes().to_vec())
+            }
+        
+            fn bytes_len(&self) -> usize{
+                size_of::<Self>()
+            }
+        
+            fn from_bytes<T: Iterator<Item = u8>>(bytes: &mut T) -> Result<Self, ()> {
+                let buffer = bytes.take(size_of::<Self>()).collect::<Vec<u8>>();
+        
+                if buffer.len() != size_of::<Self>() {
+                    // not enough bytes
+                    return Err(())
+                }
+        
+                Ok(<$type>::from_le_bytes(buffer.try_into().unwrap()))
+            }
+        }
+    };
 }
 
 impl_buffer!(u16);
