@@ -33,7 +33,7 @@ impl From<Error> for ByteErr {
 /// The Bytes trait allows for the easy conversion of data to and from u8 iters.
 pub trait Bytes<'a>{
     /// Creates an iter over the bytes of self.
-    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8> + 'a>;
+    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'a>;
 
     /// Tries to create the indicated type out of an io byte iter.
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> where Self: Sized;
