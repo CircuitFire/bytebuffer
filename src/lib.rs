@@ -104,9 +104,9 @@ pub trait WriteBytes: Write {
 
 impl WriteBytes for File {}
 
-impl Bytes<'_> for bool{
+impl<'a> Bytes<'a> for bool{
 
-    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
+    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
         ByteBuffer::new([*self as u8])
     }
 
@@ -129,9 +129,9 @@ impl Bytes<'_> for bool{
     }
 }
 
-impl Bytes<'_> for char{
+impl<'a> Bytes<'a> for char{
 
-    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
+    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
         let temp = *self as u32;
         ByteBuffer::new(temp.to_le_bytes())
     }
@@ -175,9 +175,9 @@ impl Bytes<'_> for char{
     }
 }
 
-impl Bytes<'_> for u8{
+impl<'a> Bytes<'a> for u8{
 
-    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
+    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
         ByteBuffer::new([*self])
     }
 
@@ -201,9 +201,9 @@ impl Bytes<'_> for u8{
 
 macro_rules! impl_buffer {
     ($type:ty) => {
-        impl Bytes<'_> for $type{
+        impl<'a> Bytes<'a> for $type{
 
-            fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
+            fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
                 ByteBuffer::new(self.to_le_bytes())
             }
         
