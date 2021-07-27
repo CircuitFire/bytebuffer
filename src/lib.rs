@@ -31,9 +31,9 @@ impl From<Error> for ByteErr {
 }
 
 /// The Bytes trait allows for the easy conversion of data to and from u8 iters.
-pub trait Bytes{
+pub trait Bytes<'a>{
     /// Creates an iter over the bytes of self.
-    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>;
+    fn into_bytes(&self) -> Box<dyn Iterator<Item = u8> + 'a>;
 
     /// Tries to create the indicated type out of an io byte iter.
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> where Self: Sized;
@@ -104,7 +104,7 @@ pub trait WriteBytes: Write {
 
 impl WriteBytes for File {}
 
-impl Bytes for bool{
+impl Bytes<'_> for bool{
 
     fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
         ByteBuffer::new([*self as u8])
@@ -129,7 +129,7 @@ impl Bytes for bool{
     }
 }
 
-impl Bytes for char{
+impl Bytes<'_> for char{
 
     fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
         let temp = *self as u32;
@@ -175,7 +175,7 @@ impl Bytes for char{
     }
 }
 
-impl Bytes for u8{
+impl Bytes<'_> for u8{
 
     fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
         ByteBuffer::new([*self])
@@ -201,7 +201,7 @@ impl Bytes for u8{
 
 macro_rules! impl_buffer {
     ($type:ty) => {
-        impl Bytes for $type{
+        impl Bytes<'_> for $type{
 
             fn into_bytes(&self) -> Box<dyn Iterator<Item = u8>>{
                 ByteBuffer::new(self.to_le_bytes())
