@@ -2,19 +2,20 @@
 //! Allows for easy conversion of data to and from u8 iters.
 //! 
 //! ## Structs
-//! - ByteBuffer<T>
+//! - ByteBuffer
 //! 
 //! ## Enums
 //! - ByteErr
 //! 
 //! ## Traits
-//! - Bytes
+//! - IntoBytes
+//! - IntoBytesStatic
+//! - FromBytes
 //! - WriteBytes
 
 use std::mem::size_of;
 use std::convert::TryInto;
 use std::io::{Write, Error};
-use std::fs::File;
 
 /// The collection of errors.
 #[derive(Debug)]
@@ -30,11 +31,25 @@ impl From<Error> for ByteErr {
     }
 }
 
-/// The Bytes trait allows for the easy conversion of data to and from u8 iters.
-pub trait Bytes<'a>{
+/// The IntoBytesStatic trait is the same as Into bytes except that is iter is 'static.
+pub trait IntoBytesStatic{
+    fn into_bytes_static(&self) -> Box<dyn Iterator<Item = u8>>;
+}
+
+impl<'a, T: IntoBytesStatic> IntoBytes<'a> for T {
+    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'a>{
+        self.into_bytes_static()
+    }
+}
+
+/// The IntoBytes trait allows for the easy conversion of data to u8 iters.
+pub trait IntoBytes<'a>{
     /// Creates an iter over the bytes of self.
     fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'a>;
+}
 
+/// The IntoBytes trait allows for the easy conversion of u8 iters into data.
+pub trait FromBytes{
     /// Tries to create the indicated type out of an io byte iter.
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> where Self: Sized;
 
@@ -102,14 +117,15 @@ pub trait WriteBytes: Write {
     }
 }
 
-impl WriteBytes for File {}
+impl<T: Write> WriteBytes for T {}
 
-impl<'a> Bytes<'a> for bool{
-
-    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
+impl IntoBytesStatic for bool{
+    fn into_bytes_static(&self) -> Box<dyn Iterator<Item = u8>>{
         ByteBuffer::new([*self as u8])
     }
+}
 
+impl FromBytes for bool{
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> {
         if let Some(byte) = bytes.next() {
             Ok(byte? != 0)
@@ -129,13 +145,15 @@ impl<'a> Bytes<'a> for bool{
     }
 }
 
-impl<'a> Bytes<'a> for char{
+impl IntoBytesStatic for char{
 
-    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
+    fn into_bytes_static(&self) -> Box<dyn Iterator<Item = u8>>{
         let temp = *self as u32;
         ByteBuffer::new(temp.to_le_bytes())
     }
+}
 
+impl FromBytes for char{
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> {
         let buffer = bytes.take(size_of::<Self>()).collect::<Result<Vec<_>, _>>()?;
 
@@ -175,12 +193,13 @@ impl<'a> Bytes<'a> for char{
     }
 }
 
-impl<'a> Bytes<'a> for u8{
-
-    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
+impl IntoBytesStatic for u8{
+    fn into_bytes_static(&self) -> Box<dyn Iterator<Item = u8>>{
         ByteBuffer::new([*self])
     }
+}
 
+impl FromBytes for u8{
     fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> {
         if let Some(byte) = bytes.next(){
             Ok(byte?)
@@ -201,12 +220,15 @@ impl<'a> Bytes<'a> for u8{
 
 macro_rules! impl_buffer {
     ($type:ty) => {
-        impl<'a> Bytes<'a> for $type{
+        impl IntoBytesStatic for $type{
 
-            fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'static>{
+            fn into_bytes_static(&self) -> Box<dyn Iterator<Item = u8>>{
                 ByteBuffer::new(self.to_le_bytes())
             }
-        
+        }
+
+        impl FromBytes for $type{
+
             fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr> {
                 let buffer = bytes.take(size_of::<Self>()).collect::<Result<Vec<_>, _>>()?;
         
