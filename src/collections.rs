@@ -1,4 +1,4 @@
-use super::{IntoBytes, IntoBytesStatic, FromBytes, ByteErr, ByteBuffer, MakeByteBuffer};
+use super::{IntoBytes, IntoBytesStatic, FromBytes, ByteErr};
 use std::io::Error;
 
 struct VecByteIter<'a, T> {
