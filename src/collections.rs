@@ -63,23 +63,3 @@ impl<A: FromBytes> FromBytes for Vec<A>{
         Ok(vec)
     }
 }
-
-impl<'a> IntoBytes<'a> for String{
-    fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'a>{
-        Box::new(self.bytes())
-    }
-}
-
-impl FromBytes for String{
-    fn from_bytes<T: Iterator<Item = u8>>(bytes: &mut T) -> Result<Self, ByteErr>{
-        let vec = Vec::<u8>::from_bytes(bytes)?;
-
-        Ok(String::from_utf8_lossy(&vec).to_string())
-    }
-
-    fn from_io_bytes<T: Iterator<Item = Result<u8, Error>>>(bytes: &mut T) -> Result<Self, ByteErr>{
-        let vec = Vec::<u8>::from_io_bytes(bytes)?;
-
-        Ok(String::from_utf8_lossy(&vec).to_string())
-    }
-}
