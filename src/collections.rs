@@ -1,23 +1,23 @@
 use super::{IntoBytes, IntoBytesStatic, FromBytes, ByteErr};
 use std::io::Error;
 
-struct VecByteIter<'a, T> {
+struct SliceByteIter<'a, T> {
     vec_iter: std::slice::Iter<'a, T>,
     data_iter: Box<dyn std::iter::Iterator<Item = u8> + 'a>,
 }
 
-impl<'a, T> VecByteIter<'a, T> {
-    fn new(vec: &'a Vec<T>) -> Self {
+impl<'a, T> SliceByteIter<'a, T> {
+    fn new(vec: &'a [T]) -> Self {
         let len = vec.len() as u32;
 
-        VecByteIter {
+        SliceByteIter {
             vec_iter: vec.iter(),
             data_iter: Box::new(len.into_bytes_static()),
         }
     }
 }
 
-impl<'a, T: IntoBytes<'a>> Iterator for VecByteIter<'a, T> {
+impl<'a, T: IntoBytes<'a>> Iterator for SliceByteIter<'a, T> {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item>{
@@ -34,9 +34,9 @@ impl<'a, T: IntoBytes<'a>> Iterator for VecByteIter<'a, T> {
     }
 }
 
-impl<'a, T: IntoBytes<'a>> IntoBytes<'a> for Vec<T>{
+impl<'a, T: IntoBytes<'a>> IntoBytes<'a> for [T]{
     fn into_bytes(&'a self) -> Box<dyn Iterator<Item = u8> + 'a>{
-        Box::new(VecByteIter::new(self))
+        Box::new(SliceByteIter::new(self))
     }
 }
 
